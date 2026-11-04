@@ -1,0 +1,68 @@
+import { fileService } from './file.service.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { asyncHandler } from '../../utils/asyncHandler.js';
+import { fileQuerySchema } from './file.validation.js';
+
+export class FileController {
+  upload = asyncHandler(async (req, res) => {
+    const fileRecord = await fileService.uploadFile(req.user.id, req.file);
+    return res
+      .status(201)
+      .json(ApiResponse.created(fileRecord, 'File uploaded successfully and processing initiated'));
+  });
+
+  list = asyncHandler(async (req, res) => {
+    const query = fileQuerySchema.parse(req.query);
+    const result = await fileService.getFiles(req.user.id, query);
+    return res
+      .status(200)
+      .json(ApiResponse.success(result.files, 'Files retrieved successfully', 200, result.pagination));
+  });
+
+  getById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const file = await fileService.getFileById(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(file, 'File retrieved successfully'));
+  });
+
+  getStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const statusData = await fileService.getFileStatus(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(statusData, 'File status retrieved successfully'));
+  });
+
+  download = asyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { stream, file } = await fileService.getFileForDownload(id, req.user);
+
+    res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(file.originalName)}"`
+    );
+    res.setHeader('Content-Length', file.size.toString());
+
+    stream.on('error', (err) => {
+      if (!res.headersSent) {
+        next(err);
+      }
+    });
+
+    stream.pipe(res);
+  });
+
+  delete = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const result = await fileService.deleteFile(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(result, 'File deleted successfully'));
+  });
+}
+
+export const fileController = new FileController();
+

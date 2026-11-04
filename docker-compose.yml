@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: novastat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-novastat}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-novastat_password}
+      POSTGRES_DB: ${POSTGRES_DB:-novastat_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U novastat -d novastat_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - novastat-network
+
+  backend:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: novastat-backend
+    restart: unless-stopped
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-novastat}:${POSTGRES_PASSWORD:-novastat_password}@postgres:5432/${POSTGRES_DB:-novastat_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-novastat_jwt_secure_secret_key_production_grade_32_chars}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      UPLOAD_DIR: uploads
+      MAX_FILE_SIZE: ${MAX_FILE_SIZE:-52428800}
+      ALLOWED_MIME_TYPES: ${ALLOWED_MIME_TYPES:-image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet}
+      CLIENT_URL: http://localhost:3000
+    ports:
+      - "5000:5000"
+    volumes:
+      - uploads_data:/app/uploads
+      - logs_data:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - novastat-network
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: novastat-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - novastat-network
+
+volumes:
+  postgres_data:
+    name: novastat_postgres_data
+  uploads_data:
+    name: novastat_uploads_data
+  logs_data:
+    name: novastat_logs_data
+
+networks:
+  novastat-network:
+    name: novastat_network
+    driver: bridge
+
