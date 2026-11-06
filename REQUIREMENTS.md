@@ -29,14 +29,23 @@ Comprehensive specification for the Novastat Full-Stack File Upload and Processi
 - **FR-FILE-06:** Storage layer must persist uploaded files to disk with collision-proof unique stored filenames to prevent path traversal and file overwrite attacks.
 - **FR-FILE-07:** Upload endpoint must save file record with status `PENDING` and return promptly without blocking.
 
-### 1.4 Background Processing Pipeline
-- **FR-PROC-01:** Upload completion must automatically initiate an asynchronous background processing pipeline (~25 seconds).
+### 1.4 Document Intelligence & Background Processing Pipeline
+- **FR-PROC-01:** Upload completion automatically initiates an asynchronous background processing pipeline (~16–20 seconds).
 - **FR-PROC-02:** Background processing must not block the Node.js event loop or delay HTTP responses.
-- **FR-PROC-03:** Pipeline must update database progress periodically across discrete stages (25%, 50%, 75%, 90%, 100%).
-- **FR-PROC-04:** On successful completion, status must update to `COMPLETED`, progress to 100, and set `completedAt`.
-- **FR-PROC-05:** On corruption or failure, status must update to `FAILED` and record an explanatory error message.
-- **FR-PROC-06:** Duplicate processing of the same file must be avoided.
-- **FR-PROC-07:** Server shutdown (`SIGTERM`, `SIGINT`) must cancel active worker tasks gracefully.
+- **FR-PROC-03 (Stage 1 - PDF Validation):** Validate PDF header signature (`%PDF-`), verify 50MB size limit, inspect encryption/passwords, and retrieve document page count (0–25% progress).
+- **FR-PROC-04 (Stage 2 - Text Extraction):** Read stored PDF, extract selectable text across all pages preserving boundaries using `pdf-parse`, detect scanned/image-only PDFs and report an OCR-required error, and persist extracted text to PostgreSQL (25–50% progress).
+- **FR-PROC-05 (Stage 3 - Gemini AI Content Analysis):** Divide large text into manageable chunks without token overflow, analyze core topics, key concepts, findings, and terminology using `@google/genai` (50–75% progress). If `GEMINI_API_KEY` is unconfigured, return a clear configuration error.
+- **FR-PROC-06 (Stage 4 - Structured Summary Generation):** Generate structured JSON summary conforming to the schema (title, overview, keyPoints, importantTerms, importantFacts, conclusion), validate JSON, and commit to PostgreSQL (75–100% progress).
+- **FR-PROC-07:** On successful completion, status must update to `COMPLETED`, stage to `COMPLETED`, progress to 100, and set `completedAt`.
+- **FR-PROC-08:** On corruption or failure, status must update to `FAILED` and record an explanatory error message.
+- **FR-PROC-09:** Duplicate processing of the same file must be avoided.
+- **FR-PROC-10:** Document reprocessing via `POST /api/v1/files/:id/reprocess` allows users to re-run extraction and AI analysis without re-uploading.
+
+### 1.5 Document Details & AI Intelligence View
+- **FR-VIEW-01:** File Details page must display three tabs: TAB 1 (AI Summary), TAB 2 (Extracted Text), TAB 3 (Document Information).
+- **FR-VIEW-02:** AI Summary tab must render title, overview, key points bullet list, terminology definition cards, key facts callouts, and conclusion.
+- **FR-VIEW-03:** Extracted Text tab must render complete document content with copy-to-clipboard functionality.
+- **FR-VIEW-04:** Reprocess button must be available for retrying failed or completed documents.
 
 ### 1.5 Real-Time Status Polling
 - **FR-POLL-01:** Frontend must continuously poll `GET /api/v1/files/:id/status` every 1–2 seconds while processing.

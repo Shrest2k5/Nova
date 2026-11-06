@@ -35,6 +35,30 @@ export class FileController {
       .json(ApiResponse.success(statusData, 'File status retrieved successfully'));
   });
 
+  getExtractedText = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const extractedData = await fileService.getExtractedText(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(extractedData, 'Extracted text retrieved successfully'));
+  });
+
+  getSummary = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const summaryData = await fileService.getSummary(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(summaryData, 'Document summary retrieved successfully'));
+  });
+
+  reprocess = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const result = await fileService.reprocessFile(id, req.user);
+    return res
+      .status(200)
+      .json(ApiResponse.success(result, 'Document reprocessing scheduled successfully'));
+  });
+
   download = asyncHandler(async (req, res, next) => {
     const { id } = req.params;
     const { stream, file } = await fileService.getFileForDownload(id, req.user);
@@ -65,4 +89,3 @@ export class FileController {
 }
 
 export const fileController = new FileController();
-

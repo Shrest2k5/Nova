@@ -55,16 +55,20 @@ Designed for scalability, security, and maintainability, it features a non-block
   - 50MB file size limit enforcement.
   - Live upload progress tracking using Axios `onUploadProgress`.
   - Storage abstraction (`FileStorageService`) enabling seamless transitions from Docker persistent volumes to Amazon S3 or Google Cloud Storage without touching controllers.
-- **Asynchronous Background Processing Pipeline (~25s):**
+- **Asynchronous 4-Stage Document Intelligence Pipeline (16–20s):**
   - Prompt HTTP responses (upload endpoint returns immediately upon saving file record).
-  - Background worker executes discrete multi-stage workloads (~25 seconds total):
-    - **Stage 1 (25%):** Virus & checksum integrity scan
-    - **Stage 2 (50%):** MIME header and metadata extraction
-    - **Stage 3 (75%):** Deep text indexing and semantic parsing
-    - **Stage 4 (90%):** Format optimization, preview generation, and summary build
-    - **Stage 5 (100%):** Completion verification and persistent commit
+  - Background worker executes discrete multi-stage workloads (~16-20 seconds total):
+    - **Stage 1: PDF Validation (0–25%):** File signature (`%PDF-`) verification, 50MB size limit check, password/encryption detection, page metadata retrieval.
+    - **Stage 2: Text Extraction (25–50%):** Text parsing via `pdf-parse`, per-page boundary mapping, page count recording, and scanned PDF detection without selectable text (reporting OCR requirement).
+    - **Stage 3: Gemini AI Content Analysis (50–75%):** Official `@google/genai` SDK integration, token-conscious text chunking, extraction of main topics, key concepts, findings, terminology, facts, and conclusions.
+    - **Stage 4: Summary Generation & Persistence (75–100%):** Strict JSON schema generation (title, overview, keyPoints, importantTerms, importantFacts, conclusion), JSON validation, and atomic commit to PostgreSQL.
   - Graceful cancellation on delete or server shutdown (`SIGTERM`, `SIGINT`).
   - Automatic failure detection with error messaging for corrupted payloads.
+  - Document reprocessing via `POST /api/v1/files/:id/reprocess` allowing retries without re-uploading.
+- **Document Intelligence View (File Details Page):**
+  - **TAB 1: AI Summary:** Title, overview, bulleted key points, terminology dictionary, key facts & figures, overall conclusion.
+  - **TAB 2: Extracted Text:** Complete selectable document content with page separation and one-click copy-to-clipboard.
+  - **TAB 3: Document Information:** Filename, internal stored name, MIME type, page count, upload date, processing status, and completion timestamps.
 - **Real-Time Polling Hook (`useFileStatus`):**
   - Smooth continuous polling every 1.5s while in non-terminal states.
   - Automatically halts on `COMPLETED` or `FAILED`.
@@ -93,6 +97,8 @@ Designed for scalability, security, and maintainability, it features a non-block
 - **Framework:** Express.js
 - **Database ORM:** Prisma ORM (v5)
 - **Database Engine:** PostgreSQL 16
+- **PDF Extraction:** `pdf-parse`
+- **AI Intelligence & Summarization:** Official Google Gen AI SDK (`@google/genai`)
 - **Authentication:** JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`
 - **File Handling:** Multer (with disk storage & MIME validation)
 - **Validation:** Zod schemas

@@ -84,6 +84,10 @@ docker run -d --name novastat-postgres \
 cd server
 cp .env.example .env
 
+# Set your Google Gemini API Key in server/.env:
+# GEMINI_API_KEY=your_actual_gemini_api_key_here
+# GEMINI_MODEL=gemini-2.5-flash
+
 # Install dependencies
 npm install
 

@@ -10,6 +10,7 @@ import { fileService } from '../services/fileService.js';
 export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => {
   const [data, setData] = useState(initialData);
   const [status, setStatus] = useState(initialData?.status || 'PENDING');
+  const [processingStage, setProcessingStage] = useState(initialData?.processingStage || null);
   const [progress, setProgress] = useState(initialData?.progress || 0);
   const [errorMessage, setErrorMessage] = useState(initialData?.errorMessage || null);
   const [completedAt, setCompletedAt] = useState(initialData?.completedAt || null);
@@ -32,6 +33,7 @@ export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => 
 
       setData(response);
       setStatus(response.status);
+      setProcessingStage(response.processingStage);
       setProgress(response.progress);
       setErrorMessage(response.errorMessage);
       setCompletedAt(response.completedAt);
@@ -78,6 +80,7 @@ export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => 
   return {
     data,
     status,
+    processingStage,
     progress,
     errorMessage,
     completedAt,
@@ -89,4 +92,3 @@ export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => 
     isProcessing: status === 'PROCESSING' || status === 'PENDING',
   };
 };
-

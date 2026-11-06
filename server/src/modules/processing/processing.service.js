@@ -17,6 +17,13 @@ export class ProcessingService {
     });
   }
 
+  reprocess(fileId) {
+    if (processingWorker.isProcessing(fileId)) {
+      throw new Error(`File ${fileId} is already in the active processing queue.`);
+    }
+    this.scheduleProcessing(fileId);
+  }
+
   cancelProcessing(fileId) {
     processingWorker.cancel(fileId);
   }
@@ -31,4 +38,3 @@ export class ProcessingService {
 }
 
 export const processingService = new ProcessingService();
-

@@ -1,15 +1,19 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   UploadCloud,
-  File,
+  FileText,
+  Image as ImageIcon,
+  FileArchive,
   CheckCircle2,
   AlertCircle,
   X,
   ArrowRight,
   RefreshCw,
-  FileText,
-  Image as ImageIcon,
-  FileArchive,
+  ShieldCheck,
+  FileSearch,
+  Sparkles,
+  BookOpen,
+  Loader2,
 } from 'lucide-react';
 import { fileService } from '../../services/fileService.js';
 import { formatBytes } from '../../utils/formatters.js';
@@ -26,6 +30,41 @@ const ALLOWED_EXTS = [
   '.docx', '.xlsx',
 ];
 
+const PROCESSING_STAGES = [
+  {
+    key: 'VALIDATION',
+    label: 'Validating PDF',
+    description: 'Header, encryption & structural integrity verification',
+    icon: ShieldCheck,
+    minProgress: 0,
+    targetProgress: 25,
+  },
+  {
+    key: 'EXTRACTION',
+    label: 'Extracting document content',
+    description: 'Text layer extraction & page boundary mapping',
+    icon: FileSearch,
+    minProgress: 25,
+    targetProgress: 50,
+  },
+  {
+    key: 'ANALYSIS',
+    label: 'Analyzing content with Gemini AI',
+    description: 'Concept extraction, facts & semantic synthesis',
+    icon: Sparkles,
+    minProgress: 50,
+    targetProgress: 75,
+  },
+  {
+    key: 'SUMMARIZATION',
+    label: 'Generating document summary',
+    description: 'Structured JSON summary generation & persistence',
+    icon: BookOpen,
+    minProgress: 75,
+    targetProgress: 100,
+  },
+];
+
 export const FileUploadZone = ({ onUploadSuccess }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -39,6 +78,7 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
   // Poll status once file record exists
   const {
     status: processingStatus,
+    processingStage,
     progress: processingProgress,
     errorMessage: processingError,
     isComplete,
@@ -133,6 +173,31 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
 
   const FileTypeIcon = getFileIcon(selectedFile?.name);
 
+  // Helper to determine stage state
+  const getStageState = (stage, index) => {
+    if (isComplete) return 'completed';
+    if (isFailed) {
+      // If failed, see if this was the stage that failed
+      if (processingStage === stage.key) return 'failed';
+      const failedIdx = PROCESSING_STAGES.findIndex((s) => s.key === processingStage);
+      if (failedIdx !== -1 && index < failedIdx) return 'completed';
+      return 'pending';
+    }
+
+    if (!processingStage) {
+      return index === 0 ? 'active' : 'pending';
+    }
+
+    const currentIdx = PROCESSING_STAGES.findIndex((s) => s.key === processingStage);
+    if (currentIdx === -1) {
+      return processingProgress >= stage.targetProgress ? 'completed' : 'pending';
+    }
+
+    if (index < currentIdx) return 'completed';
+    if (index === currentIdx) return 'active';
+    return 'pending';
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
       {/* Hidden file input */}
@@ -168,13 +233,13 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
             <span className="text-indigo-600 hover:underline">browse</span>
           </h4>
           <p className="mt-1.5 text-xs text-slate-500 max-w-md text-center">
-            Supports PDF, DOCX, XLSX, Images (PNG, JPG, WebP), ZIP, TXT, JSON, and CSV up to 50MB.
+            Upload PDF documents for automatic text extraction and Gemini AI structured summarization. Also supports images, text, and data files up to 50MB.
           </p>
 
           <div className="mt-5 flex items-center gap-2 text-xs text-slate-400">
-            <span>Secure TLS transfer</span>
+            <span>Production-grade TLS storage</span>
             <span>•</span>
-            <span>Automated 25s processing pipeline</span>
+            <span>Real 4-stage PDF extraction & Gemini pipeline</span>
           </div>
         </div>
       )}
@@ -260,9 +325,9 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
         </div>
       )}
 
-      {/* State 3: File Uploaded -> Live Background Processing Tracker */}
+      {/* State 3: File Uploaded -> Live 4-Stage Background Processing Tracker */}
       {uploadedRecord && (
-        <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 space-y-4">
+        <div className="p-6 bg-slate-50 rounded-xl border border-slate-200 space-y-6">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
@@ -281,38 +346,143 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
             <StatusBadge status={processingStatus} />
           </div>
 
-          {/* Processing Progress Bar */}
-          <div className="space-y-1.5">
+          {/* Overall Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-semibold text-slate-700">
+              <span>Overall Progress</span>
+              <span className="font-mono">{processingProgress}%</span>
+            </div>
             <ProgressBar
               progress={processingProgress}
               status={processingStatus}
               height="h-2.5"
             />
-            <p className="text-xs text-slate-500 italic">
-              {processingStatus === 'PENDING' && 'Waiting in job queue...'}
-              {processingStatus === 'PROCESSING' &&
-                `Background worker is verifying and indexing (${processingProgress}% complete)...`}
-              {isComplete && 'File processing completed! Ready for analysis and download.'}
-              {isFailed && `Processing failed: ${processingError || 'Unknown error'}`}
-            </p>
+          </div>
+
+          {/* 4 Discrete Processing Stages Cards */}
+          <div className="space-y-2.5 pt-2">
+            <h5 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+              Document Processing Pipeline Stages
+            </h5>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {PROCESSING_STAGES.map((stage, idx) => {
+                const state = getStageState(stage, idx);
+                const Icon = stage.icon;
+
+                return (
+                  <div
+                    key={stage.key}
+                    className={`p-3.5 rounded-xl border transition-all duration-200 ${
+                      state === 'completed'
+                        ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950'
+                        : state === 'active'
+                        ? 'bg-white border-indigo-500 ring-2 ring-indigo-100 shadow-xs'
+                        : state === 'failed'
+                        ? 'bg-rose-50 border-rose-200 text-rose-950'
+                        : 'bg-white/60 border-slate-200 text-slate-400 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          state === 'completed'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : state === 'active'
+                            ? 'bg-indigo-100 text-indigo-600'
+                            : state === 'failed'
+                            ? 'bg-rose-100 text-rose-700'
+                            : 'bg-slate-100 text-slate-400'
+                        }`}
+                      >
+                        {state === 'completed' ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                        ) : state === 'active' ? (
+                          <Loader2 className="w-4 h-4 text-indigo-600 animate-spin" />
+                        ) : state === 'failed' ? (
+                          <AlertCircle className="w-4 h-4 text-rose-600" />
+                        ) : (
+                          <Icon className="w-4 h-4" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <p
+                            className={`text-xs font-semibold ${
+                              state === 'completed'
+                                ? 'text-emerald-900'
+                                : state === 'active'
+                                ? 'text-indigo-900 font-bold'
+                                : state === 'failed'
+                                ? 'text-rose-900'
+                                : 'text-slate-600'
+                            }`}
+                          >
+                            {idx + 1}. {stage.label}
+                          </p>
+                          <span
+                            className={`text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded ${
+                              state === 'completed'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : state === 'active'
+                                ? 'bg-indigo-100 text-indigo-800 animate-pulse'
+                                : state === 'failed'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            {state}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                          {stage.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           {/* Success / Failure Banner */}
           {isComplete && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center gap-2.5 text-xs text-emerald-800">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>
-                All verification checks passed. File record is committed to PostgreSQL database.
-              </span>
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-3 text-xs text-emerald-900">
+              <div className="flex items-center gap-2.5">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                <div>
+                  <p className="font-semibold text-emerald-950">
+                    PDF text extracted & AI summary generated successfully!
+                  </p>
+                  <p className="text-emerald-700 mt-0.5">
+                    Structured findings and full document text are committed to PostgreSQL.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                icon={ArrowRight}
+                onClick={() => {
+                  window.location.href = `/files/${uploadedRecord.id}`;
+                }}
+              >
+                View Summary
+              </Button>
             </div>
           )}
 
           {isFailed && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg flex items-center gap-2.5 text-xs text-rose-800">
-              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              <span>
-                Error during processing: {processingError || 'Failed to complete task.'}
-              </span>
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-2 text-xs text-rose-900">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-semibold text-rose-950">Processing Error</p>
+                  <p className="text-rose-700 mt-0.5">
+                    {processingError || 'An unexpected error occurred during document processing.'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -335,7 +505,7 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
                   window.location.href = `/files/${uploadedRecord.id}`;
                 }}
               >
-                View File Details
+                Open Document Details
               </Button>
             )}
           </div>
@@ -344,4 +514,3 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
     </div>
   );
 };
-

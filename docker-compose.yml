@@ -38,6 +38,8 @@ services:
       MAX_FILE_SIZE: ${MAX_FILE_SIZE:-52428800}
       ALLOWED_MIME_TYPES: ${ALLOWED_MIME_TYPES:-image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet}
       CLIENT_URL: http://localhost:3000
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
     ports:
       - "5000:5000"
     volumes:

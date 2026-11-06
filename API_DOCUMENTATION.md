@@ -313,11 +313,14 @@ Retrieves current lifecycle processing progress (polled by frontend hook every 1
   "success": true,
   "message": "File status retrieved successfully",
   "data": {
+    "fileId": "3bb609b5-c08d-4e94-82ce-f6b907409214",
     "id": "3bb609b5-c08d-4e94-82ce-f6b907409214",
     "filename": "annual_report.pdf",
     "status": "PROCESSING",
-    "progress": 75,
+    "processingStage": "EXTRACTION",
+    "progress": 50,
     "errorMessage": null,
+    "pageCount": 12,
     "completedAt": null,
     "createdAt": "2026-11-03T12:05:00.000Z",
     "updatedAt": "2026-11-03T12:05:15.000Z"
@@ -327,7 +330,119 @@ Retrieves current lifecycle processing progress (polled by frontend hook every 1
 
 ---
 
-### 3.5 Download Completed File
+### 3.5 Get Extracted Text
+Retrieves the raw text extracted from all pages of the document along with page count metadata.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/files/:id/extracted-text`
+- **Auth Required:** Yes (File Owner or `ADMIN`)
+
+#### Successful Response (200 OK)
+```json
+{
+  "statusCode": 200,
+  "success": true,
+  "message": "Extracted text retrieved successfully",
+  "data": {
+    "fileId": "3bb609b5-c08d-4e94-82ce-f6b907409214",
+    "originalName": "annual_report.pdf",
+    "pageCount": 12,
+    "extractedText": "--- Page 1 ---\nAnnual Financial Report 2026...\n\n--- Page 2 ---\nExecutive Summary...",
+    "status": "COMPLETED",
+    "processingStage": "COMPLETED"
+  }
+}
+```
+
+#### Error Responses
+- **400 Bad Request:** Document processing failed before text could be extracted.
+- **401 Unauthorized:** Missing or invalid authentication token.
+- **403 Forbidden:** Access denied (not file owner or admin).
+- **404 Not Found:** File ID does not exist.
+
+---
+
+### 3.6 Get AI Document Summary
+Retrieves the structured Google Gemini AI summary containing title, overview, bulleted key points, terminology dictionary, key facts, and conclusion.
+
+- **Method:** `GET`
+- **URL:** `/api/v1/files/:id/summary`
+- **Auth Required:** Yes (File Owner or `ADMIN`)
+
+#### Successful Response (200 OK)
+```json
+{
+  "statusCode": 200,
+  "success": true,
+  "message": "Document summary retrieved successfully",
+  "data": {
+    "fileId": "3bb609b5-c08d-4e94-82ce-f6b907409214",
+    "originalName": "annual_report.pdf",
+    "status": "COMPLETED",
+    "processingStage": "COMPLETED",
+    "summary": {
+      "title": "Novastat Annual Financial & Architecture Report 2026",
+      "overview": "Comprehensive overview detailing cloud migration, architectural scalability, and fiscal performance.",
+      "keyPoints": [
+        "Cloud storage footprint increased by 45% while reducing latency.",
+        "PostgreSQL and Prisma ORM delivered 99.98% query availability.",
+        "Automated Gemini AI document pipeline adopted across all business units."
+      ],
+      "importantTerms": [
+        {
+          "term": "Relational Consistency",
+          "definition": "Database design ensuring strict ACID compliance through PostgreSQL foreign keys and Prisma schema migrations."
+        }
+      ],
+      "importantFacts": [
+        "Revenue increased 28% year-over-year.",
+        "Average document processing turnaround reduced to 18 seconds."
+      ],
+      "conclusion": "The platform achieved all technical and fiscal performance benchmarks for fiscal year 2026."
+    }
+  }
+}
+```
+
+#### Error Responses
+- **400 Bad Request:** Processing failed, or API key configuration missing.
+- **401 Unauthorized:** Unauthenticated.
+- **403 Forbidden:** Unauthorized user.
+- **404 Not Found:** Summary not found or document does not exist.
+
+---
+
+### 3.7 Reprocess Document
+Allows authorized users to retry failed processing or re-run the 4-stage extraction and Gemini AI summarization pipeline without re-uploading the physical file.
+
+- **Method:** `POST`
+- **URL:** `/api/v1/files/:id/reprocess`
+- **Auth Required:** Yes (File Owner or `ADMIN`)
+
+#### Successful Response (200 OK)
+```json
+{
+  "statusCode": 200,
+  "success": true,
+  "message": "Document reprocessing scheduled successfully",
+  "data": {
+    "fileId": "3bb609b5-c08d-4e94-82ce-f6b907409214",
+    "status": "PENDING",
+    "processingStage": "VALIDATION",
+    "progress": 0,
+    "message": "Document reprocessing successfully queued."
+  }
+}
+```
+
+#### Error Responses
+- **400 Bad Request:** File is currently in the active processing queue.
+- **403 Forbidden:** Unauthorized user.
+- **404 Not Found:** File or physical storage payload not found.
+
+---
+
+### 3.8 Download Completed File
 Streams the physical file from persistent storage with `Content-Disposition: attachment`.
 
 - **Method:** `GET`

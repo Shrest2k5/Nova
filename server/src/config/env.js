@@ -21,6 +21,8 @@ const envSchema = z.object({
     'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   ),
   CLIENT_URL: z.string().default('http://localhost:5173'),
+  GEMINI_API_KEY: z.string().optional().default(''),
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
 });
 
 const parsed = envSchema.safeParse(process.env);

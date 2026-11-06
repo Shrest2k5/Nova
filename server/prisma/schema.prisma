@@ -21,6 +21,14 @@ enum FileStatus {
   FAILED
 }
 
+enum ProcessingStage {
+  VALIDATION
+  EXTRACTION
+  ANALYSIS
+  SUMMARIZATION
+  COMPLETED
+}
+
 model User {
   id        String   @id @default(uuid())
   name      String
@@ -36,21 +44,25 @@ model User {
 }
 
 model File {
-  id           String      @id @default(uuid())
-  userId       String
-  originalName String
-  storedName   String
-  mimeType     String
-  size         BigInt
-  storagePath  String
-  status       FileStatus  @default(PENDING)
-  progress     Int         @default(0)
-  errorMessage String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  completedAt  DateTime?
+  id              String           @id @default(uuid())
+  userId          String
+  originalName    String
+  storedName      String
+  mimeType        String
+  size            BigInt
+  storagePath     String
+  status          FileStatus       @default(PENDING)
+  processingStage ProcessingStage?
+  progress        Int              @default(0)
+  errorMessage    String?
+  extractedText   String?          @db.Text
+  summary         Json?
+  pageCount       Int?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  completedAt     DateTime?
 
-  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
