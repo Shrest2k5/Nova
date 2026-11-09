@@ -9,7 +9,7 @@ import { fileService } from '../services/fileService.js';
  */
 export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => {
   const [data, setData] = useState(initialData);
-  const [status, setStatus] = useState(initialData?.status || 'PENDING');
+  const [status, setStatus] = useState(initialData?.status || 'QUEUED');
   const [processingStage, setProcessingStage] = useState(initialData?.processingStage || null);
   const [progress, setProgress] = useState(initialData?.progress || 0);
   const [errorMessage, setErrorMessage] = useState(initialData?.errorMessage || null);
@@ -20,9 +20,7 @@ export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => 
   const timeoutRef = useRef(null);
   const isMountedRef = useRef(true);
 
-  const isTerminalState = useCallback((st) => {
-    return st === 'COMPLETED' || st === 'FAILED';
-  }, []);
+  const isTerminalState = useCallback((st) => st === 'FAILED' || st === 'COMPLETED', []);
 
   const checkStatus = useCallback(async () => {
     if (!fileId) return;
@@ -89,6 +87,6 @@ export const useFileStatus = (fileId, initialData = null, intervalMs = 1500) => 
     refetch,
     isComplete: status === 'COMPLETED',
     isFailed: status === 'FAILED',
-    isProcessing: status === 'PROCESSING' || status === 'PENDING',
+    isProcessing: ['QUEUED', 'PROCESSING', 'EXTRACTING'].includes(status),
   };
 };

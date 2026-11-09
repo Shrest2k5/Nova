@@ -70,7 +70,7 @@ export class FileRepository {
       prisma.file.count({ where }),
       prisma.file.count({ where: { ...where, status: 'COMPLETED' } }),
       prisma.file.count({ where: { ...where, status: 'PROCESSING' } }),
-      prisma.file.count({ where: { ...where, status: 'PENDING' } }),
+      prisma.file.count({ where: { ...where, status: 'QUEUED' } }),
       prisma.file.count({ where: { ...where, status: 'FAILED' } }),
     ]);
 

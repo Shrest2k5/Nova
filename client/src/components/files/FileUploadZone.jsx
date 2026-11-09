@@ -2,8 +2,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import {
   UploadCloud,
   FileText,
-  Image as ImageIcon,
-  FileArchive,
   CheckCircle2,
   AlertCircle,
   X,
@@ -25,22 +23,20 @@ import { useFileStatus } from '../../hooks/useFileStatus.js';
 // Max file size: 50MB
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
 const ALLOWED_EXTS = [
-  '.jpg', '.jpeg', '.png', '.gif', '.webp',
-  '.pdf', '.zip', '.txt', '.json', '.csv',
-  '.docx', '.xlsx',
+  '.pdf', '.txt', '.docx', '.xlsx', '.xls', '.png', '.jpg', '.jpeg',
 ];
 
 const PROCESSING_STAGES = [
   {
-    key: 'VALIDATION',
-    label: 'Validating PDF',
+    key: 'VALIDATING',
+    label: 'Validating document',
     description: 'Header, encryption & structural integrity verification',
     icon: ShieldCheck,
     minProgress: 0,
     targetProgress: 25,
   },
   {
-    key: 'EXTRACTION',
+    key: 'EXTRACTING',
     label: 'Extracting document content',
     description: 'Text layer extraction & page boundary mapping',
     icon: FileSearch,
@@ -48,17 +44,17 @@ const PROCESSING_STAGES = [
     targetProgress: 50,
   },
   {
-    key: 'ANALYSIS',
-    label: 'Analyzing content with Gemini AI',
-    description: 'Concept extraction, facts & semantic synthesis',
+    key: 'OCR',
+    label: 'Reading document content',
+    description: 'OCR for scanned documents and images',
     icon: Sparkles,
     minProgress: 50,
     targetProgress: 75,
   },
   {
-    key: 'SUMMARIZATION',
-    label: 'Generating document summary',
-    description: 'Structured JSON summary generation & persistence',
+    key: 'COMPLETED',
+    label: 'Saving extracted text',
+    description: 'Complete raw text persistence',
     icon: BookOpen,
     minProgress: 75,
     targetProgress: 100,
@@ -233,13 +229,13 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
             <span className="text-indigo-600 hover:underline">browse</span>
           </h4>
           <p className="mt-1.5 text-xs text-slate-500 max-w-md text-center">
-            Upload PDF documents for automatic text extraction and Gemini AI structured summarization. Also supports images, text, and data files up to 50MB.
+            Upload PDF, DOCX, TXT, XLSX, XLS, PNG, or JPG documents for local extraction, up to 50MB.
           </p>
 
           <div className="mt-5 flex items-center gap-2 text-xs text-slate-400">
             <span>Production-grade TLS storage</span>
             <span>•</span>
-            <span>Real 4-stage PDF extraction & Gemini pipeline</span>
+            <span>Asynchronous local text extraction pipeline</span>
           </div>
         </div>
       )}
@@ -452,7 +448,7 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <div>
                   <p className="font-semibold text-emerald-950">
-                    PDF text extracted & AI summary generated successfully!
+                    Document text extracted and saved successfully!
                   </p>
                   <p className="text-emerald-700 mt-0.5">
                     Structured findings and full document text are committed to PostgreSQL.
@@ -467,7 +463,7 @@ export const FileUploadZone = ({ onUploadSuccess }) => {
                   window.location.href = `/files/${uploadedRecord.id}`;
                 }}
               >
-                View Summary
+                View Extracted Text
               </Button>
             </div>
           )}

@@ -19,7 +19,7 @@ import { useFileStatus } from '../../hooks/useFileStatus.js';
 // Row component with isolated live polling for active files
 const FileTableRow = ({ file, onDownload, onDeleteClick }) => {
   // Only activate polling if file is not yet finished
-  const shouldPoll = file.status === 'PENDING' || file.status === 'PROCESSING';
+  const shouldPoll = ['QUEUED', 'PROCESSING', 'EXTRACTING'].includes(file.status);
   const { status, progress, errorMessage } = useFileStatus(
     shouldPoll ? file.id : null,
     file

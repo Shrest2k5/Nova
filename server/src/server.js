@@ -2,7 +2,6 @@ import app from './app.js';
 import { env } from './config/env.js';
 import { connectDatabase, disconnectDatabase } from './config/database.js';
 import { logger } from './config/logger.js';
-import { processingService } from './modules/processing/processing.service.js';
 
 let server;
 
@@ -32,9 +31,6 @@ const gracefulShutdown = async (signal) => {
       logger.info('HTTP server closed');
 
       try {
-        // Shutdown background processing worker
-        await processingService.shutdown();
-
         // Disconnect from database
         await disconnectDatabase();
 

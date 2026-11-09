@@ -42,15 +42,11 @@ export const fileService = {
     return response.data;
   },
 
-  async getSummary(id) {
-    const response = await api.get(`/files/${id}/summary`);
-    return response.data;
-  },
-
   async reprocessFile(id) {
     const response = await api.post(`/files/${id}/reprocess`);
     return response.data;
   },
+
 
   async downloadFile(id, originalName) {
     // Axios request with responseType blob

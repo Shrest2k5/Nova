@@ -17,12 +17,13 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('7d'),
   UPLOAD_DIR: z.string().default('uploads'),
   MAX_FILE_SIZE: z.coerce.number().default(52428800), // 50MB
-  ALLOWED_MIME_TYPES: z.string().default(
-    'image/jpeg,image/png,image/gif,image/webp,application/pdf,application/zip,text/plain,application/json,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-  ),
+  ALLOWED_MIME_TYPES: z.string().default('application/pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,image/png,image/jpeg'),
   CLIENT_URL: z.string().default('http://localhost:5173'),
-  GEMINI_API_KEY: z.string().optional().default(''),
-  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
+  REDIS_URL: z.string().default('redis://localhost:6379'),
+  WORKER_CONCURRENCY: z.coerce.number().int().positive().default(2),
+  BULL_BOARD_USER: z.string().optional(),
+  BULL_BOARD_PASSWORD: z.string().optional(),
+  OCR_COMMAND: z.string().default('pdftoppm'),
 });
 
 const parsed = envSchema.safeParse(process.env);

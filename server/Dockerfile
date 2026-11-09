@@ -27,6 +27,7 @@ RUN mkdir -p uploads logs && chmod +x entrypoint.sh
 EXPOSE 5000
 
 ENV NODE_ENV=production
+CMD ["node", "src/server.js"]
 
 ENTRYPOINT ["./entrypoint.sh"]
 

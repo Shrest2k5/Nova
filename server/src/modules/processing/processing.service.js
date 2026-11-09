@@ -1,40 +1,6 @@
-import { processingWorker } from './processing.worker.js';
-import { processingRepository } from './processing.repository.js';
+import { Queue } from 'bullmq';
+import { redisConnection } from './redis.js';
 import { logger } from '../../config/logger.js';
-
-export class ProcessingService {
-  /**
-   * Schedule a background file processing task.
-   * Runs asynchronously without blocking the calling thread or HTTP response.
-   */
-  scheduleProcessing(fileId) {
-    logger.info(`[ProcessingService] Queuing background processing for file: ${fileId}`);
-    // Non-blocking invocation
-    setImmediate(() => {
-      processingWorker.processFile(fileId).catch((err) => {
-        logger.error(`[ProcessingService] Unhandled error processing file ${fileId}:`, err);
-      });
-    });
-  }
-
-  reprocess(fileId) {
-    if (processingWorker.isProcessing(fileId)) {
-      throw new Error(`File ${fileId} is already in the active processing queue.`);
-    }
-    this.scheduleProcessing(fileId);
-  }
-
-  cancelProcessing(fileId) {
-    processingWorker.cancel(fileId);
-  }
-
-  async getStatus(fileId) {
-    return processingRepository.getFileStatus(fileId);
-  }
-
-  async shutdown() {
-    await processingWorker.shutdown();
-  }
-}
-
+export const fileProcessingQueue = new Queue('fileProcessing', { connection: redisConnection, defaultJobOptions: { attempts: 3, backoff: { type: 'exponential', delay: 1000 }, removeOnComplete: { age: 86400, count: 1000 }, removeOnFail: { age: 604800, count: 1000 } } });
+export class ProcessingService { async scheduleProcessing(fileId) { const existing = await fileProcessingQueue.getJob(`file-${fileId}`); if (existing) return existing; const job = await fileProcessingQueue.add('extract-document', { fileId }, { jobId: `file-${fileId}` }); logger.info(`[ProcessingService] queued file=${fileId}`); return job; } async cancelProcessing(fileId) { const job = await fileProcessingQueue.getJob(`file-${fileId}`); if (job) await job.remove(); } async shutdown() { await fileProcessingQueue.close(); } }
 export const processingService = new ProcessingService();

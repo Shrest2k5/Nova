@@ -2,11 +2,11 @@ import React from 'react';
 import { Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export const StatusBadge = ({ status, showIcon = true, size = 'md' }) => {
-  const normalizedStatus = (status || 'PENDING').toUpperCase();
+  const normalizedStatus = (status || 'QUEUED').toUpperCase();
 
   const configs = {
-    PENDING: {
-      label: 'Pending',
+    QUEUED: {
+      label: 'Queued',
       bg: 'bg-amber-50 text-amber-700 border-amber-200',
       icon: Clock,
       spin: false,
@@ -31,7 +31,7 @@ export const StatusBadge = ({ status, showIcon = true, size = 'md' }) => {
     },
   };
 
-  const config = configs[normalizedStatus] || configs.PENDING;
+  const config = configs[normalizedStatus] || configs.QUEUED;
   const Icon = config.icon;
 
   const sizeClasses = {

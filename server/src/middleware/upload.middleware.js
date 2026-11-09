@@ -12,9 +12,7 @@ if (!fs.existsSync(env.UPLOAD_PATH)) {
 
 // Allowed extensions map corresponding to allowed MIME types
 const ALLOWED_EXTENSIONS = new Set([
-  '.jpg', '.jpeg', '.png', '.gif', '.webp',
-  '.pdf', '.zip', '.txt', '.json', '.csv',
-  '.docx', '.xlsx'
+  '.pdf', '.txt', '.docx', '.xlsx', '.xls', '.png', '.jpg', '.jpeg'
 ]);
 
 const storage = multer.diskStorage({
@@ -53,7 +51,7 @@ const fileFilter = (req, file, cb) => {
   if (!env.ALLOWED_MIME_TYPES_LIST.includes(mime)) {
     return cb(
       ApiError.badRequest(
-        `Invalid file type '${mime}'. Allowed types include: PDF, Images (JPEG, PNG, GIF, WebP), ZIP, TXT, JSON, CSV, DOCX, XLSX`
+        `Invalid file type '${mime}'. Allowed types: PDF, DOCX, TXT, XLSX, XLS, PNG, JPG, JPEG`
       ),
       false
     );
@@ -70,4 +68,6 @@ export const uploadMiddleware = multer({
   },
   fileFilter,
 });
+
+export { ALLOWED_EXTENSIONS };
 

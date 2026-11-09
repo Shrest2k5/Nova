@@ -16,7 +16,7 @@ export const UploadFiles = () => {
           Upload & Process Documents
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Upload PDF documents for real text extraction and Google Gemini AI summarization.
+          Upload supported documents for complete local text extraction.
         </p>
       </div>
 
@@ -29,7 +29,7 @@ export const UploadFiles = () => {
           Asynchronous 4-Stage Document Intelligence Pipeline
         </h3>
         <p className="text-xs text-slate-500">
-          When a PDF document is uploaded, our background worker executes genuine text extraction and Gemini AI analysis with real-time status tracking:
+            Uploaded documents are extracted asynchronously by a dedicated background worker:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-3 pt-2">
@@ -60,7 +60,7 @@ export const UploadFiles = () => {
               <Sparkles className="w-4 h-4" />
               <span className="text-xs font-bold">Stage 3 (50–75%)</span>
             </div>
-            <p className="text-xs text-slate-700 font-semibold">Gemini AI Analysis</p>
+            <p className="text-xs text-slate-700 font-semibold">Raw text extraction</p>
             <p className="text-[11px] text-slate-500 mt-1">
               Token-conscious chunking, concept extraction, key facts & terminology analysis.
             </p>
@@ -71,9 +71,9 @@ export const UploadFiles = () => {
               <BookOpen className="w-4 h-4" />
               <span className="text-xs font-bold">Stage 4 (75–100%)</span>
             </div>
-            <p className="text-xs text-slate-700 font-semibold">Summary & Persistence</p>
+            <p className="text-xs text-slate-700 font-semibold">Text persistence</p>
             <p className="text-[11px] text-slate-500 mt-1">
-              JSON schema validation, title & findings persistence to PostgreSQL.
+              Complete extracted text persistence to PostgreSQL.
             </p>
           </div>
         </div>

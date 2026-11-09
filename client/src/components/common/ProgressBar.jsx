@@ -15,7 +15,7 @@ export const ProgressBar = ({
         return 'bg-emerald-500';
       case 'FAILED':
         return 'bg-rose-500';
-      case 'PENDING':
+      case 'QUEUED':
         return 'bg-amber-400';
       case 'PROCESSING':
       default:
@@ -34,7 +34,7 @@ export const ProgressBar = ({
               ? 'Failed'
               : status === 'PROCESSING'
               ? 'Processing...'
-              : 'Pending...'}
+              : 'Queued...'}
           </span>
           <span>{clampedProgress}%</span>
         </div>

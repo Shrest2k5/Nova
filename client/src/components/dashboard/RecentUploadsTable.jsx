@@ -8,7 +8,7 @@ import { EmptyState } from '../common/EmptyState.jsx';
 import { useFileStatus } from '../../hooks/useFileStatus.js';
 
 const RecentRow = ({ file, onDownload }) => {
-  const shouldPoll = file.status === 'PENDING' || file.status === 'PROCESSING';
+  const shouldPoll = ['QUEUED', 'PROCESSING', 'EXTRACTING'].includes(file.status);
   const { status, progress } = useFileStatus(shouldPoll ? file.id : null, file);
 
   const currentStatus = shouldPoll ? status : file.status;

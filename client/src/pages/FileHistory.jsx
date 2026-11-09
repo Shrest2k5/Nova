@@ -17,7 +17,7 @@ import {
 
 const STATUS_FILTERS = [
   { label: 'All Files', value: 'ALL' },
-  { label: 'Pending', value: 'PENDING' },
+  { label: 'Queued', value: 'QUEUED' },
   { label: 'Processing', value: 'PROCESSING' },
   { label: 'Completed', value: 'COMPLETED' },
   { label: 'Failed', value: 'FAILED' },

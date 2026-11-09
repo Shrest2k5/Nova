@@ -15,17 +15,17 @@ enum Role {
 }
 
 enum FileStatus {
-  PENDING
+  QUEUED
   PROCESSING
+  EXTRACTING
   COMPLETED
   FAILED
 }
 
 enum ProcessingStage {
-  VALIDATION
-  EXTRACTION
-  ANALYSIS
-  SUMMARIZATION
+  VALIDATING
+  EXTRACTING
+  OCR
   COMPLETED
 }
 
@@ -51,12 +51,11 @@ model File {
   mimeType        String
   size            BigInt
   storagePath     String
-  status          FileStatus       @default(PENDING)
+  status          FileStatus       @default(QUEUED)
   processingStage ProcessingStage?
   progress        Int              @default(0)
   errorMessage    String?
   extractedText   String?          @db.Text
-  summary         Json?
   pageCount       Int?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

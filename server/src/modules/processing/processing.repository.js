@@ -14,19 +14,12 @@ export class ProcessingRepository {
   }
 
   async updateStageAndProgress(fileId, data) {
-    return prisma.file.update({
-      where: { id: fileId },
-      data: {
-        ...(data.status ? { status: data.status } : {}),
-        ...(data.stage !== undefined ? { processingStage: data.stage } : {}),
-        ...(data.progress !== undefined ? { progress: data.progress } : {}),
-        ...(data.errorMessage !== undefined ? { errorMessage: data.errorMessage } : {}),
-        ...(data.extractedText !== undefined ? { extractedText: data.extractedText } : {}),
-        ...(data.summary !== undefined ? { summary: data.summary } : {}),
-        ...(data.pageCount !== undefined ? { pageCount: data.pageCount } : {}),
-        ...(data.completedAt !== undefined ? { completedAt: data.completedAt } : {}),
-      },
-    });
+    const mapped = {};
+    for (const key of ['status', 'progress', 'errorMessage', 'extractedText', 'pageCount', 'completedAt']) {
+      if (data[key] !== undefined) mapped[key] = data[key];
+    }
+    if (data.stage !== undefined) mapped.processingStage = data.stage;
+    return prisma.file.update({ where: { id: fileId }, data: mapped });
   }
 
   async saveExtractedText(fileId, extractedText, pageCount) {
@@ -35,30 +28,11 @@ export class ProcessingRepository {
       data: {
         extractedText,
         pageCount,
-      },
-    });
-  }
-
-  async saveSummary(fileId, summary) {
-    return prisma.file.update({
-      where: { id: fileId },
-      data: {
-        summary,
-      },
-    });
-  }
-
-  async getFileStatus(fileId) {
-    return prisma.file.findUnique({
-      where: { id: fileId },
-      select: {
-        id: true,
-        status: true,
-        processingStage: true,
-        progress: true,
-        errorMessage: true,
-        completedAt: true,
-        updatedAt: true,
+        status: 'COMPLETED',
+        processingStage: 'COMPLETED',
+        progress: 100,
+        errorMessage: null,
+        completedAt: new Date(),
       },
     });
   }

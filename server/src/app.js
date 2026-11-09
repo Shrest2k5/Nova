@@ -7,8 +7,17 @@ import { requestLogger } from './middleware/request.middleware.js';
 import { errorHandler } from './middleware/error.middleware.js';
 import { ApiError } from './utils/ApiError.js';
 import routes from './routes/index.js';
+import { createBullBoard } from '@bull-board/api';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { ExpressAdapter } from '@bull-board/express';
+import { fileProcessingQueue } from './modules/processing/processing.service.js';
+import { authenticate } from './middleware/auth.middleware.js';
+import { authorize } from './middleware/role.middleware.js';
 
 const app = express();
+const bullBoardAdapter = new ExpressAdapter();
+bullBoardAdapter.setBasePath('/admin/queues');
+createBullBoard({ queues: [new BullMQAdapter(fileProcessingQueue)], serverAdapter: bullBoardAdapter });
 
 // Security HTTP headers
 app.use(
@@ -46,6 +55,7 @@ app.use(requestLogger);
 
 // API v1 routes
 app.use('/api/v1', routes);
+app.use('/admin/queues', authenticate, authorize('ADMIN'), bullBoardAdapter.getRouter());
 
 // 404 Not Found handler for undefined routes
 app.use((req, res, next) => {
