@@ -1,3 +1,4 @@
+
 import { fileRepository } from './file.repository.js';
 import { fileStorageService } from './file.storage.js';
 import { processingService } from '../processing/processing.service.js';
@@ -9,24 +10,44 @@ import fs from 'fs';
 const validateSignature = async (file) => {
   const ext = path.extname(file.originalname).toLowerCase();
   const header = Buffer.alloc(8);
+
   const handle = await fs.promises.open(file.path, 'r');
-  try { await handle.read(header, 0, 8, 0); } finally { await handle.close(); }
+
+  try {
+    await handle.read(header, 0, 8, 0);
+  } finally {
+    await handle.close();
+  }
+
   const isPdf = header.subarray(0, 5).toString('ascii') === '%PDF-';
   const isZip = header[0] === 0x50 && header[1] === 0x4b;
   const isXls = header[0] === 0xd0 && header[1] === 0xcf;
-  if ((ext === '.pdf' && !isPdf) || (ext === '.docx' && !isZip) || (ext === '.xlsx' && !isZip) || (ext === '.xls' && !isXls)) throw ApiError.badRequest('The uploaded file content does not match its extension.');
+
+  if (
+    (ext === '.pdf' && !isPdf) ||
+    (ext === '.docx' && !isZip) ||
+    (ext === '.xlsx' && !isZip) ||
+    (ext === '.xls' && !isXls)
+  ) {
+    throw ApiError.badRequest(
+      'The uploaded file content does not match its extension.'
+    );
+  }
 };
 
 export class FileService {
   async uploadFile(userId, multerFile) {
     if (!multerFile) {
-      throw ApiError.badRequest('No file uploaded. Please provide a file in the "file" field');
+      throw ApiError.badRequest(
+        'No file uploaded. Please provide a file in the "file" field'
+      );
     }
 
     let fileRecord;
+
     try {
       await validateSignature(multerFile);
-      // Create the queued file record before handing it to BullMQ.
+
       fileRecord = await fileRepository.create({
         userId,
         originalName: multerFile.originalname,
@@ -39,26 +60,45 @@ export class FileService {
         progress: 0,
       });
 
-      logger.info(`File uploaded successfully: ${fileRecord.originalName} (${fileRecord.id}) for user ${userId}`);
+      logger.info(
+        `File uploaded successfully: ${fileRecord.originalName} (${fileRecord.id}) for user ${userId}`
+      );
 
-      // Initiate background processing asynchronously (non-blocking)
       await processingService.scheduleProcessing(fileRecord.id);
 
       return fileRecord;
     } catch (err) {
-      if (fileRecord) await fileRepository.update(fileRecord.id, { status: 'FAILED', errorMessage: `Queue unavailable: ${err.message}` }).catch(() => {});
-      // Clean up orphaned disk file if database record creation fails
-      if (multerFile.filename) {
-        await fileStorageService.deleteFile(multerFile.filename).catch(() => {});
+      if (fileRecord) {
+        await fileRepository
+          .update(fileRecord.id, {
+            status: 'FAILED',
+            errorMessage: `Queue unavailable: ${err.message}`,
+          })
+          .catch(() => {});
       }
+
+      if (multerFile.filename) {
+        await fileStorageService
+          .deleteFile(multerFile.filename)
+          .catch(() => {});
+      }
+
       throw err;
     }
   }
 
-  async getFiles(userId, { page = 1, limit = 10, status = 'ALL', search = '' }) {
+  // ADMIN sees all files; USER sees only their own files.
+  async getFiles(user, {
+    page = 1,
+    limit = 10,
+    status = 'ALL',
+    search = '',
+  }) {
     const pageNum = Math.max(1, parseInt(page, 10) || 1);
     const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 10));
     const skip = (pageNum - 1) * limitNum;
+
+    const userId = user.role === 'ADMIN' ? null : user.id;
 
     const { files, total } = await fileRepository.findByUser(userId, {
       skip,
@@ -80,13 +120,15 @@ export class FileService {
 
   async getFileById(fileId, user) {
     const file = await fileRepository.findById(fileId);
+
     if (!file) {
       throw ApiError.notFound(`File with id '${fileId}' not found`);
     }
 
-    // Role-based ownership check: only owner or ADMIN can view file
     if (user.role !== 'ADMIN' && file.userId !== user.id) {
-      throw ApiError.forbidden('You do not have permission to access this file');
+      throw ApiError.forbidden(
+        'You do not have permission to access this file'
+      );
     }
 
     return file;
@@ -94,6 +136,7 @@ export class FileService {
 
   async getFileStatus(fileId, user) {
     const file = await this.getFileById(fileId, user);
+
     return {
       fileId: file.id,
       id: file.id,
@@ -133,14 +176,17 @@ export class FileService {
     const file = await this.getFileById(fileId, user);
 
     if (['QUEUED', 'PROCESSING', 'EXTRACTING'].includes(file.status)) {
-      throw ApiError.badRequest('File is currently being processed. Please wait for completion.');
+      throw ApiError.badRequest(
+        'File is currently being processed. Please wait for completion.'
+      );
     }
 
     if (!fileStorageService.fileExists(file.storedName)) {
-      throw ApiError.notFound('Physical file does not exist on disk storage. Cannot reprocess.');
+      throw ApiError.notFound(
+        'Physical file does not exist on disk storage. Cannot reprocess.'
+      );
     }
 
-    // Reset processing state
     const updated = await fileRepository.update(fileId, {
       status: 'QUEUED',
       processingStage: 'VALIDATING',
@@ -150,7 +196,10 @@ export class FileService {
       extractedText: null,
     });
 
-    logger.info(`[FileService] Reprocessing initiated for file: ${file.originalName} (${fileId})`);
+    logger.info(
+      `[FileService] Reprocessing initiated for file: ${file.originalName} (${fileId})`
+    );
+
     await processingService.cancelProcessing(fileId);
     await processingService.scheduleProcessing(fileId);
 
@@ -167,7 +216,9 @@ export class FileService {
     const file = await this.getFileById(fileId, user);
 
     if (file.status === 'FAILED') {
-      throw ApiError.badRequest('Cannot download a file whose processing has failed');
+      throw ApiError.badRequest(
+        'Cannot download a file whose processing has failed'
+      );
     }
 
     if (!fileStorageService.fileExists(file.storedName)) {
@@ -175,6 +226,7 @@ export class FileService {
     }
 
     const stream = fileStorageService.getFileStream(file.storedName);
+
     return {
       stream,
       file,
@@ -184,21 +236,26 @@ export class FileService {
   async deleteFile(fileId, user) {
     const file = await this.getFileById(fileId, user);
 
-    // Cancel active background processing if running
     await processingService.cancelProcessing(fileId);
 
-    // Remove from physical storage
     try {
       await fileStorageService.deleteFile(file.storedName);
     } catch (storageErr) {
-      logger.warn(`Storage deletion warning for file ${fileId}: ${storageErr.message}`);
+      logger.warn(
+        `Storage deletion warning for file ${fileId}: ${storageErr.message}`
+      );
     }
 
-    // Delete record from PostgreSQL
     await fileRepository.delete(fileId);
-    logger.info(`File deleted: ${file.originalName} (${fileId}) by user ${user.id}`);
 
-    return { id: fileId, deleted: true };
+    logger.info(
+      `File deleted: ${file.originalName} (${fileId}) by user ${user.id}`
+    );
+
+    return {
+      id: fileId,
+      deleted: true,
+    };
   }
 }
 

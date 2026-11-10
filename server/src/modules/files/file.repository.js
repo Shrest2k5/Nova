@@ -1,3 +1,4 @@
+
 import { prisma } from '../../config/database.js';
 
 export class FileRepository {
@@ -6,7 +7,11 @@ export class FileRepository {
       data,
       include: {
         user: {
-          select: { id: true, name: true, email: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
     });
@@ -17,16 +22,29 @@ export class FileRepository {
       where: { id },
       include: {
         user: {
-          select: { id: true, name: true, email: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
     });
   }
 
-  async findByUser(userId, { skip = 0, take = 10, status, search }) {
+  async findByUser(userId, {
+    skip = 0,
+    take = 10,
+    status,
+    search,
+  }) {
     const where = {
-      userId,
-      ...(status && status !== 'ALL' ? { status } : {}),
+      ...(userId ? { userId } : {}),
+
+      ...(status && status !== 'ALL'
+        ? { status }
+        : {}),
+
       ...(search
         ? {
             originalName: {
@@ -42,12 +60,27 @@ export class FileRepository {
         where,
         skip,
         take,
-        orderBy: { createdAt: 'desc' },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
       }),
+
       prisma.file.count({ where }),
     ]);
 
-    return { files, total };
+    return {
+      files,
+      total,
+    };
   }
 
   async update(id, data) {
@@ -66,13 +99,22 @@ export class FileRepository {
   async getStats(userId = null) {
     const where = userId ? { userId } : {};
 
-    const [total, completed, processing, pending, failed] = await Promise.all([
-      prisma.file.count({ where }),
-      prisma.file.count({ where: { ...where, status: 'COMPLETED' } }),
-      prisma.file.count({ where: { ...where, status: 'PROCESSING' } }),
-      prisma.file.count({ where: { ...where, status: 'QUEUED' } }),
-      prisma.file.count({ where: { ...where, status: 'FAILED' } }),
-    ]);
+    const [total, completed, processing, pending, failed] =
+      await Promise.all([
+        prisma.file.count({ where }),
+        prisma.file.count({
+          where: { ...where, status: 'COMPLETED' },
+        }),
+        prisma.file.count({
+          where: { ...where, status: 'PROCESSING' },
+        }),
+        prisma.file.count({
+          where: { ...where, status: 'QUEUED' },
+        }),
+        prisma.file.count({
+          where: { ...where, status: 'FAILED' },
+        }),
+      ]);
 
     return {
       total,
@@ -89,10 +131,16 @@ export class FileRepository {
     return prisma.file.findMany({
       where,
       take: limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: {
+        createdAt: 'desc',
+      },
       include: {
         user: {
-          select: { id: true, name: true, email: true },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
     });
@@ -100,4 +148,3 @@ export class FileRepository {
 }
 
 export const fileRepository = new FileRepository();
-
