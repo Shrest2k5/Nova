@@ -15,7 +15,7 @@ export const Navbar = ({ onToggleSidebar }) => {
       await logout();
       toast.info('You have been logged out.');
       navigate('/login');
-    } catch (err) {
+    } catch {
       navigate('/login');
     }
   };

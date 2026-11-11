@@ -7,7 +7,7 @@ import { StatusBadge } from '../components/common/StatusBadge.jsx';
 import { ProgressBar } from '../components/common/ProgressBar.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
-import { ArrowLeft, Copy, Download, FileText, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, Copy, FileText, RotateCcw, Trash2 } from 'lucide-react';
 
 export const FileDetails = () => {
   const { id } = useParams(); const navigate = useNavigate(); const [file, setFile] = useState(null); const [error, setError] = useState(null); const [text, setText] = useState('');

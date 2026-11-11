@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { fileService } from '../services/fileService.js';
 import { FileTable } from '../components/files/FileTable.jsx';
-import { Input } from '../components/common/Input.jsx';
 import { Button } from '../components/common/Button.jsx';
 import { EmptyState } from '../components/common/EmptyState.jsx';
 import { LoadingSpinner } from '../components/common/LoadingSpinner.jsx';
 import { ErrorMessage } from '../components/common/ErrorMessage.jsx';
 import {
   Search,
-  Filter,
   RefreshCw,
   UploadCloud,
   ChevronLeft,

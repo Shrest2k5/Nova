@@ -12,7 +12,6 @@ import {
 import { formatBytes, formatDate } from '../../utils/formatters.js';
 import { StatusBadge } from '../common/StatusBadge.jsx';
 import { ProgressBar } from '../common/ProgressBar.jsx';
-import { Button } from '../common/Button.jsx';
 import { ConfirmationModal } from '../common/ConfirmationModal.jsx';
 import { useFileStatus } from '../../hooks/useFileStatus.js';
 
@@ -20,7 +19,7 @@ import { useFileStatus } from '../../hooks/useFileStatus.js';
 const FileTableRow = ({ file, onDownload, onDeleteClick }) => {
   // Only activate polling if file is not yet finished
   const shouldPoll = ['QUEUED', 'PROCESSING', 'EXTRACTING'].includes(file.status);
-  const { status, progress, errorMessage } = useFileStatus(
+  const { status, progress } = useFileStatus(
     shouldPoll ? file.id : null,
     file
   );
@@ -120,7 +119,6 @@ export const FileTable = ({
   files = [],
   onDownload,
   onDelete,
-  isLoading = false,
 }) => {
   const [selectedFileForDelete, setSelectedFileForDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);

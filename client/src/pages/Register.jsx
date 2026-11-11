@@ -13,7 +13,6 @@ import {
   EyeOff,
   LogIn,
   AlertCircle,
-  Check,
 } from 'lucide-react';
 
 export const Register = () => {

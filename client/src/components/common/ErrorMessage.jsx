@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, XCircle } from 'lucide-react';
+import { XCircle } from 'lucide-react';
 
 export const ErrorMessage = ({
   title = 'Error',
